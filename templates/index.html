@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fake News Detection</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+
+<style>
+/* Background */
+#neuralBG {
+    position: fixed; top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: -1;
+    background-color: #0f0f1a;
+}
+body::before {
+    content: "";
+    position: fixed; top:0; left:0; width:100%; height:100%;
+    background: linear-gradient(135deg, rgba(15,15,26,0.6), rgba(15,15,26,0.6));
+    z-index: -1;
+}
+
+/* Navbar */
+.navbar { background-color: rgba(20,20,30,0.85)!important; }
+
+/* Header */
+.main-header { text-align:center; padding:3rem 1rem; font-weight:bold; animation:fadeIn 1.5s ease-in-out; }
+.main-header h1 { font-size:2.5rem; color:#00f0ff; text-shadow:0 0 15px #00f0ff; }
+.main-header p { color:#a0a0ff; font-size:1.2rem; }
+
+/* Statistic Cards */
+#statsCards .col-md-4 { margin-bottom: 1.5rem; opacity:0; transform:translateY(20px); animation:cardFade 1s forwards; }
+#statsCards .col-md-4:nth-child(1){ animation-delay:0.2s; }
+#statsCards .col-md-4:nth-child(2){ animation-delay:0.4s; }
+#statsCards .col-md-4:nth-child(3){ animation-delay:0.6s; }
+
+.stat-card { text-align:center; padding:2rem; border-radius:15px;
+    background: rgba(30,30,50,0.85);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.5);
+    transition: transform 0.3s, box-shadow 0.3s, border 0.3s;
+    position: relative; color:white;
+}
+.stat-card:nth-child(1) { border: 2px solid #00f0ff; }
+.stat-card:nth-child(2) { border: 2px solid #ff4d4d; }
+.stat-card:nth-child(3) { border: 2px solid #28a745; }
+.stat-card:hover { transform: translateY(-8px); box-shadow: 0 12px 30px rgba(0,255,255,0.6); }
+.stat-number { font-size:2.5rem; font-weight:bold; margin-bottom:0.5rem; }
+
+/* Textarea */
+textarea { 
+    background: rgba(20,20,30,0.85); 
+    color: #e0e0ff; 
+    border: 2px solid rgba(0,255,255,0.3); 
+    border-radius: 15px; 
+    padding: 1rem; 
+    font-size: 1.2rem; 
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    box-shadow: 0 0 10px rgba(0,255,255,0.3);
+    transition: box-shadow 0.3s, border-color 0.3s, transform 0.2s;
+}
+textarea:focus { 
+    box-shadow: 0 0 25px #00f0ff; 
+    border-color: #00f0ff;
+    transform: scale(1.02); 
+    outline: none; 
+}
+textarea::placeholder { 
+    color: rgba(200,200,255,0.6); 
+    font-style: italic; 
+}
+
+/* Buttons */
+.btn-primary { background:#00f0ff; border:none; color:#0f0f1a; font-weight:bold; transition: transform 0.3s, box-shadow 0.3s;}
+.btn-primary:hover { background:#00c8ff; transform: scale(1.05); box-shadow:0 0 20px #00f0ff; }
+.btn-secondary:hover { transform: scale(1.05); }
+
+/* Result Box */
+#resultSection {
+    padding: 2rem; margin-top: 1rem; border-radius: 20px;
+    display: none; font-size: 1.8rem; font-weight:bold;
+    text-align: center; 
+    background: linear-gradient(145deg, rgba(0,255,255,0.1), rgba(0,200,255,0.1));
+    border: 2px solid #00f0ff;
+    box-shadow: 0 0 25px rgba(0,255,255,0.5), 0 0 50px rgba(0,255,255,0.2);
+    animation: resultFade 1s ease forwards;
+    color: #00f0ff;
+}
+#resultSection span { display:block; margin: 0.5rem 0; font-size:2rem; }
+
+/* Confidence Bar */
+.confidence-bar { height: 25px; border-radius: 12px; overflow: hidden; margin-top: 1rem; background: rgba(255,255,255,0.2); }
+.confidence-fill { height: 100%; width: 0; text-align: center; line-height: 25px; color: black; font-weight: bold; transition: width 1s ease, background 1s ease; border-radius: 12px; }
+
+/* Loading */
+.loading { display:none; margin-top:1rem; }
+.spinner-border { color:#00f0ff; }
+
+/* Animations */
+@keyframes fadeIn { from {opacity:0;} to {opacity:1;} }
+@keyframes cardFade { from {opacity:0; transform:translateY(20px);} to {opacity:1; transform:translateY(0);} }
+@keyframes resultFade { from {opacity:0; transform:translateY(20px);} to {opacity:1; transform:translateY(0);} }
+</style>
+</head>
+<body>
+
+<!-- Neural Network Canvas -->
+<canvas id="neuralBG"></canvas>
+
+<nav class="navbar navbar-expand-lg navbar-dark shadow">
+    <div class="container">
+        <a class="navbar-brand fw-bold" href="/"><i class="fas fa-robot"></i> Fake News Detector</a>
+    </div>
+</nav>
+
+<div class="main-header">
+    <h1><i class="fas fa-robot"></i> Fake News Detection System</h1>
+    <p>AI-powered news verification</p>
+</div>
+
+<div class="container">
+
+    <!-- Statistic Cards -->
+    <div class="row mb-4" id="statsCards">
+        <div class="col-md-4">
+            <div class="card stat-card">
+                <div class="stat-number" id="totalChecks">{{ daily_stats.total_checks }}</div>
+                <div>Total Checks</div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card stat-card">
+                <div class="stat-number" id="fakeDetected">{{ daily_stats.fake_detected }}</div>
+                <div>Fake News Detected</div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card stat-card">
+                <div class="stat-number" id="realDetected">{{ daily_stats.real_detected }}</div>
+                <div>Real News Verified</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Analysis Form -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <h3 class="card-title mb-4"><i class="fas fa-search"></i> Analyze News</h3>
+            <form id="newsForm">
+                <div class="mb-3">
+                    <textarea class="form-control" id="news_text" name="news_text" rows="6"
+                        placeholder="Paste news text or article..." required></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary btn-lg"><i class="fas fa-check-circle"></i> Analyze</button>
+                <button type="button" class="btn btn-secondary btn-lg ms-2" onclick="clearForm()"><i class="fas fa-redo"></i> Clear</button>
+            </form>
+
+            <div class="text-center loading">
+                <div class="spinner-border" role="status"></div>
+                <p class="mt-2">Analyzing content...</p>
+            </div>
+
+            <div id="resultSection">
+                <span id="predictionIcon"></span> <span id="predictionText"></span>
+                <div class="confidence-bar">
+                    <div class="confidence-fill" id="confidenceFill"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<script>
+// Neural Network Background
+const canvas = document.getElementById('neuralBG');
+const ctx = canvas.getContext('2d');
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+window.addEventListener('resize', () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; });
+
+const nodes = [];
+const NODE_COUNT = 80;
+for(let i=0;i<NODE_COUNT;i++){
+    nodes.push({ x: Math.random()*canvas.width, y: Math.random()*canvas.height, vx: (Math.random()-0.5)*0.5, vy: (Math.random()-0.5)*0.5, radius: 2 + Math.random()*2 });
+}
+function drawBG(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    for(let i=0;i<NODE_COUNT;i++){
+        for(let j=i+1;j<NODE_COUNT;j++){
+            let dx = nodes[i].x - nodes[j].x;
+            let dy = nodes[i].y - nodes[j].y;
+            let dist = Math.sqrt(dx*dx + dy*dy);
+            if(dist<120){
+                ctx.strokeStyle = 'rgba(0,255,255,'+(1-dist/120)+')';
+                ctx.lineWidth=1;
+                ctx.beginPath();
+                ctx.moveTo(nodes[i].x,nodes[i].y);
+                ctx.lineTo(nodes[j].x,nodes[j].y);
+                ctx.stroke();
+            }
+        }
+    }
+    for(let i=0;i<NODE_COUNT;i++){
+        nodes[i].x += nodes[i].vx; nodes[i].y += nodes[i].vy;
+        if(nodes[i].x<0||nodes[i].x>canvas.width) nodes[i].vx*=-1;
+        if(nodes[i].y<0||nodes[i].y>canvas.height) nodes[i].vy*=-1;
+        ctx.fillStyle='#00f0ff';
+        ctx.beginPath(); ctx.arc(nodes[i].x,nodes[i].y,nodes[i].radius,0,Math.PI*2); ctx.fill();
+    }
+    requestAnimationFrame(drawBG);
+}
+drawBG();
+
+// News Form Submission
+$(document).ready(function(){
+    $('#newsForm').on('submit', function(e){
+        e.preventDefault();
+        const newsText = $('#news_text').val().trim();
+        if(newsText.length < 20){ alert('Enter at least 20 characters'); return; }
+
+        $('.loading').show();
+        $('#resultSection').hide();
+
+        $.ajax({
+            url:'/predict', method:'POST', data: $(this).serialize(),
+            success:function(response){
+                $('.loading').hide();
+                if(response.error){ alert(response.error); return; }
+
+                // Show result
+                $('#resultSection').show();
+                $('#predictionIcon').html(response.icon);
+                $('#predictionText').text(response.prediction);
+                $('#resultSection').css('color', response.color=='success'?'#28a745':'#ff4d4d');
+
+                // Confidence
+                $('#confidenceFill').css('width', response.confidence+'%')
+                                    .text(response.confidence+'%')
+                                    .css('background', response.color=='success'?'#28a745':'#ff4d4d');
+
+                // Update stats dynamically
+                $('#totalChecks').text(response.daily_stats.total_checks);
+                $('#fakeDetected').text(response.daily_stats.fake_detected);
+                $('#realDetected').text(response.daily_stats.real_detected);
+            },
+            error:function(){ $('.loading').hide(); alert('Error occurred.'); }
+        });
+    });
+});
+
+function clearForm(){
+    $('#news_text').val('');
+    $('#resultSection').hide();
+    $('#confidenceFill').css('width','0').text('');
+}
+</script>
+</body>
+</html>
