@@ -49,4 +49,17 @@ http://127.0.0.1:5000/
  5. Enter a news article text and click Analyze to see if it’s Fake or Real.
 
 
+---
+
+## Why It Matters
+
+Misinformation spreads faster than truth. This tool helps users quickly verify news content and make informed decisions. It also tracks daily statistics, giving insight into trends in fake news detection.
+
+---
+
+## Author
+
+**Khizar Ishtiaq**  
+- LinkedIn: [https://linkedin.com/in/khizar-ishtiaq-716518315](https://linkedin.com/in/khizar-ishtiaq-716518315)  
+- Email: khizarishtiaq59@gmail.com
 
