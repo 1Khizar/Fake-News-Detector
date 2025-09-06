@@ -30,21 +30,23 @@ This web application uses **Machine Learning** and **Natural Language Processing
 
 1. Clone this repository:  
 ```bash
-git clone https://github.com/yourusername/FakeNewsDetector.git```
+git clone https://github.com/yourusername/FakeNewsDetector.git
+```
 
-2.Install required dependencies:
+ 2. Install required dependencies:
 
 ```pip install -r requirements.txt
 ```
-3.Run the Flask app:
+
+ 3. Run the Flask app:
 ```
 python app.py
 ```
-4.Open your browser and go to:
+ 4. Open your browser and go to:
 ```
 http://127.0.0.1:5000/
 ```
-5. Enter a news article text and click Analyze to see if it’s Fake or Real.
+ 5. Enter a news article text and click Analyze to see if it’s Fake or Real.
 
 
 
